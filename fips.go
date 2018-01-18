@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +build cgo
+// +build !darwin
+
 package openssl
 
 /*
@@ -36,4 +39,11 @@ func FIPSModeSet(mode bool) error {
 		return errorFromErrorQueue()
 	}
 	return nil
+}
+
+func FIPSMode() bool {
+	if C.FIPS_mode() == 0 {
+		return false
+	}
+	return true
 }
