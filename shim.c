@@ -282,6 +282,7 @@ void X_HMAC_CTX_free(HMAC_CTX *ctx) {
 }
 
 int X_PEM_write_bio_PrivateKey_traditional(BIO *bio, EVP_PKEY *key, const EVP_CIPHER *enc, unsigned char *kstr, int klen, pem_password_cb *cb, void *u) {
+#if OPENSSL_VERSION_NUMBER >  0x10000000L
 	/* PEM_write_bio_PrivateKey always tries to use the PKCS8 format if it
 	 * is available, instead of using the "traditional" format as stated in the
 	 * OpenSSL man page.
@@ -305,6 +306,9 @@ int X_PEM_write_bio_PrivateKey_traditional(BIO *bio, EVP_PKEY *key, const EVP_CI
 	// Write out everything to the BIO
 	return PEM_ASN1_write_bio((i2d_of_void *)i2d_PrivateKey,
 		pem_type_str, bio, key, enc, kstr, klen, cb, u);
+#else
+   return -1;
+#endif
 }
 
 #endif
@@ -403,6 +407,7 @@ const SSL_METHOD *X_TLSv1_method() {
 	return TLSv1_method();
 }
 
+/*
 const SSL_METHOD *X_TLSv1_1_method() {
 #if defined(TLS1_1_VERSION) && !defined(OPENSSL_SYSNAME_MACOSX)
 	return TLSv1_1_method();
@@ -419,6 +424,7 @@ const SSL_METHOD *X_TLSv1_2_method() {
 #endif
 }
 
+*/
 int X_SSL_CTX_new_index() {
 	return SSL_CTX_get_ex_new_index(0, NULL, NULL, NULL, NULL);
 }
@@ -622,6 +628,8 @@ int X_EVP_PKEY_assign_charp(EVP_PKEY *pkey, int type, char *key) {
 	return EVP_PKEY_assign(pkey, type, key);
 }
 
+
+
 int X_EVP_SignFinal(EVP_MD_CTX *ctx, unsigned char *md, unsigned int *s, EVP_PKEY *pkey) {
 	return EVP_SignFinal(ctx, md, s, pkey);
 }
@@ -671,24 +679,44 @@ const EVP_CIPHER *X_EVP_CIPHER_CTX_cipher(EVP_CIPHER_CTX *ctx) {
     return EVP_CIPHER_CTX_cipher(ctx);
 }
 
+#if OPENSSL_VERSION_NUMBER >  0x10000000L
 int X_EVP_PKEY_CTX_set_ec_paramgen_curve_nid(EVP_PKEY_CTX *ctx, int nid) {
 	return EVP_PKEY_CTX_set_ec_paramgen_curve_nid(ctx, nid);
 }
+#endif
+
+// END HERE
 
 size_t X_HMAC_size(const HMAC_CTX *e) {
+#if OPENSSL_VERSION_NUMBER >  0x10000000L
 	return HMAC_size(e);
+#else
+  return 0;
+#endif
 }
 
 int X_HMAC_Init_ex(HMAC_CTX *ctx, const void *key, int len, const EVP_MD *md, ENGINE *impl) {
+#if OPENSSL_VERSION_NUMBER >  0x10000000L
 	return HMAC_Init_ex(ctx, key, len, md, impl);
+#else
+  return -1;
+#endif
 }
 
 int X_HMAC_Update(HMAC_CTX *ctx, const unsigned char *data, size_t len) {
+#if OPENSSL_VERSION_NUMBER >  0x10000000L
 	return HMAC_Update(ctx, data, len);
+#else
+  return -1;
+#endif
 }
 
 int X_HMAC_Final(HMAC_CTX *ctx, unsigned char *md, unsigned int *len) {
+#if OPENSSL_VERSION_NUMBER >  0x10000000L
 	return HMAC_Final(ctx, md, len);
+#else
+  return -1;
+#endif
 }
 
 int X_sk_X509_num(STACK_OF(X509) *sk) {

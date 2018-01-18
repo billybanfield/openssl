@@ -64,19 +64,6 @@ type PublicKey interface {
 	// format
 	MarshalPKIXPublicKeyDER() (der_block []byte, err error)
 
-	// KeyType returns an identifier for what kind of key is represented by this
-	// object.
-	KeyType() NID
-
-	// BaseType returns an identifier for what kind of key is represented
-	// by this object.
-	// Keys that share same algorithm but use different legacy formats
-	// will have the same BaseType.
-	//
-	// For example, a key with a `KeyType() == KeyTypeRSA` and a key with a
-	// `KeyType() == KeyTypeRSA2` would both have `BaseType() == KeyTypeRSA`.
-	BaseType() NID
-
 	evpPKey() *C.EVP_PKEY
 }
 
@@ -100,14 +87,6 @@ type pKey struct {
 }
 
 func (key *pKey) evpPKey() *C.EVP_PKEY { return key.key }
-
-func (key *pKey) KeyType() NID {
-	return NID(C.EVP_PKEY_id(key.key))
-}
-
-func (key *pKey) BaseType() NID {
-	return NID(C.EVP_PKEY_base_id(key.key))
-}
 
 func (key *pKey) SignPKCS1v15(method Method, data []byte) ([]byte, error) {
 	ctx := C.X_EVP_MD_CTX_new()
@@ -364,57 +343,6 @@ func GenerateRSAKeyWithExponent(bits int, exponent int) (PrivateKey, error) {
 		return nil, errors.New("failed to assign RSA key")
 	}
 	p := &pKey{key: key}
-	runtime.SetFinalizer(p, func(p *pKey) {
-		C.X_EVP_PKEY_free(p.key)
-	})
-	return p, nil
-}
-
-// GenerateECKey generates a new elliptic curve private key on the speicified
-// curve.
-func GenerateECKey(curve EllipticCurve) (PrivateKey, error) {
-
-	// Create context for parameter generation
-	paramCtx := C.EVP_PKEY_CTX_new_id(C.EVP_PKEY_EC, nil)
-	if paramCtx == nil {
-		return nil, errors.New("failed creating EC parameter generation context")
-	}
-	defer C.EVP_PKEY_CTX_free(paramCtx)
-
-	// Intialize the parameter generation
-	if int(C.EVP_PKEY_paramgen_init(paramCtx)) != 1 {
-		return nil, errors.New("failed initializing EC parameter generation context")
-	}
-
-	// Set curve in EC parameter generation context
-	if int(C.X_EVP_PKEY_CTX_set_ec_paramgen_curve_nid(paramCtx, C.int(curve))) != 1 {
-		return nil, errors.New("failed setting curve in EC parameter generation context")
-	}
-
-	// Create parameter object
-	var params *C.EVP_PKEY
-	if int(C.EVP_PKEY_paramgen(paramCtx, &params)) != 1 {
-		return nil, errors.New("failed creating EC key generation parameters")
-	}
-	defer C.EVP_PKEY_free(params)
-
-	// Create context for the key generation
-	keyCtx := C.EVP_PKEY_CTX_new(params, nil)
-	if keyCtx == nil {
-		return nil, errors.New("failed creating EC key generation context")
-	}
-	defer C.EVP_PKEY_CTX_free(keyCtx)
-
-	// Generate the key
-	var privKey *C.EVP_PKEY
-	if int(C.EVP_PKEY_keygen_init(keyCtx)) != 1 {
-		return nil, errors.New("failed initializing EC key generation context")
-	}
-	if int(C.EVP_PKEY_keygen(keyCtx, &privKey)) != 1 {
-		return nil, errors.New("failed generating EC private key")
-	}
-
-	p := &pKey{key: privKey}
 	runtime.SetFinalizer(p, func(p *pKey) {
 		C.X_EVP_PKEY_free(p.key)
 	})

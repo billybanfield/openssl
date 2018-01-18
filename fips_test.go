@@ -1,4 +1,5 @@
 // +build !darwin
+// +build !no_fips
 
 package openssl_test
 

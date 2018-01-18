@@ -14,6 +14,7 @@
 
 // +build cgo
 // +build !darwin
+// +build !no_fips
 
 package openssl
 
